@@ -7,6 +7,7 @@ import (
 
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/metrics"
+	"github.com/getsentry/raven-go"
 )
 
 // InstrumentingMiddleware returns an endpoint middleware that records
@@ -35,6 +36,19 @@ func LoggingMiddleware(logger log.Logger) Middleware {
 					"took":            time.Since(begin),
 				}).Info("request")
 			}(time.Now())
+			return next(ctx, request)
+		}
+	}
+}
+
+// SentryMiddleware sends endpoint errors to sentry
+func SentryMiddleware(client *raven.Client) Middleware {
+	return func(next Endpoint) Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			if err != nil {
+				fmt.Println("Sending error")
+				client.CaptureError(err, nil)
+			}
 			return next(ctx, request)
 		}
 	}
