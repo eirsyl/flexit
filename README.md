@@ -5,8 +5,8 @@
 ## Features
 
 * Runtime optimization
-* Pubsub helpers
-* Tracing helpers
+* Pubsub
+* Tracing
 * Logging
 * Endpoint
 * Metrics

@@ -3,9 +3,9 @@ package nats
 import (
 	"context"
 	"errors"
-	"github.com/nats-io/go-nats-streaming"
 	"github.com/eirsyl/flexit/pubsub"
 	"github.com/golang/protobuf/proto"
+	"github.com/nats-io/go-nats-streaming"
 	"time"
 )
 
@@ -13,7 +13,7 @@ var (
 	ClusterIDRequired = errors.New("clusterid required")
 	ClientIDRequired  = errors.New("clientid required")
 	UrlsRequired      = errors.New("urls required")
-	SubjectRequired = errors.New("subject required")
+	SubjectRequired   = errors.New("subject required")
 )
 
 // PUBLISHER
@@ -65,19 +65,19 @@ func (p *natsPublisher) Close() error {
 
 type natsSubscriberMessage struct {
 	message []byte
-	sec uint64
-	ack func() error
+	sec     uint64
+	ack     func() error
 }
 
-func(sm *natsSubscriberMessage) Message() []byte {
+func (sm *natsSubscriberMessage) Message() []byte {
 	return sm.message
 }
 
-func(sm *natsSubscriberMessage) ExtendDoneDeadline(duration time.Duration) error {
+func (sm *natsSubscriberMessage) ExtendDoneDeadline(duration time.Duration) error {
 	return nil
 }
 
-func(sm *natsSubscriberMessage) Done() error {
+func (sm *natsSubscriberMessage) Done() error {
 	return sm.ack()
 }
 
@@ -86,9 +86,9 @@ type natsSubscriber struct {
 	so stan.SubscriptionOption
 
 	subject string
-	group string
-	kerr error
-	stop chan chan error
+	group   string
+	kerr    error
+	stop    chan chan error
 }
 
 func NewSubscriber(cfg *Config, subject, group string, so stan.SubscriptionOption) (pubsub.Subscriber, error) {
@@ -123,7 +123,7 @@ func NewSubscriber(cfg *Config, subject, group string, so stan.SubscriptionOptio
 	return s, nil
 }
 
-func (s *natsSubscriber) Start() <- chan pubsub.SubscriberMessage {
+func (s *natsSubscriber) Start() <-chan pubsub.SubscriberMessage {
 	output := make(chan pubsub.SubscriberMessage)
 
 	go func(s *natsSubscriber, sc stan.Conn, so stan.SubscriptionOption) {
@@ -131,15 +131,15 @@ func (s *natsSubscriber) Start() <- chan pubsub.SubscriberMessage {
 
 		opts := []stan.SubscriptionOption{
 			stan.SetManualAckMode(),
-			stan.AckWait(60*time.Second),
+			stan.AckWait(60 * time.Second),
 			so,
 		}
 
 		handler := func(m *stan.Msg) {
 			output <- &natsSubscriberMessage{
 				message: m.Data,
-				sec: m.Sequence,
-				ack: m.Ack,
+				sec:     m.Sequence,
+				ack:     m.Ack,
 			}
 		}
 
@@ -153,7 +153,7 @@ func (s *natsSubscriber) Start() <- chan pubsub.SubscriberMessage {
 				s.subject,
 				s.group,
 				handler,
-				opts...
+				opts...,
 			)
 		}
 
@@ -163,8 +163,8 @@ func (s *natsSubscriber) Start() <- chan pubsub.SubscriberMessage {
 		}
 
 		select {
-			case exit := <- s.stop:
-				exit <- sub.Close()
+		case exit := <-s.stop:
+			exit <- sub.Close()
 		}
 
 	}(s, s.sc, s.so)
