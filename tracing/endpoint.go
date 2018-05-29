@@ -15,7 +15,7 @@ import (
 // overwritten. If `ctx` does not yet have a Span, one is created here.
 func TraceServer(tracer opentracing.Tracer, operationName string) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		return func(ctx context.Context, request interface{}) (interface{}, error) {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 			serverSpan := opentracing.SpanFromContext(ctx)
 			if serverSpan == nil {
 				// All we can do is create a new root span.
@@ -23,7 +23,13 @@ func TraceServer(tracer opentracing.Tracer, operationName string) endpoint.Middl
 			} else {
 				serverSpan.SetOperationName(operationName)
 			}
-			defer serverSpan.Finish()
+			defer func() {
+				if err != nil {
+					serverSpan.SetTag("error", true)
+					serverSpan.SetTag("message", err.Error())
+				}
+				serverSpan.Finish()
+			}()
 			ext.SpanKindRPCServer.Set(serverSpan)
 			ctx = opentracing.ContextWithSpan(ctx, serverSpan)
 			return next(ctx, request)
@@ -35,7 +41,7 @@ func TraceServer(tracer opentracing.Tracer, operationName string) endpoint.Middl
 // OpenTracing Span called `operationName`.
 func TraceClient(tracer opentracing.Tracer, operationName string) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		return func(ctx context.Context, request interface{}) (interface{}, error) {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 			var clientSpan opentracing.Span
 			if parentSpan := opentracing.SpanFromContext(ctx); parentSpan != nil {
 				clientSpan = tracer.StartSpan(
@@ -45,7 +51,13 @@ func TraceClient(tracer opentracing.Tracer, operationName string) endpoint.Middl
 			} else {
 				clientSpan = tracer.StartSpan(operationName)
 			}
-			defer clientSpan.Finish()
+			defer func() {
+				if err != nil {
+					clientSpan.SetTag("error", true)
+					clientSpan.SetTag("message", err.Error())
+				}
+				clientSpan.Finish()
+			}()
 			ext.SpanKindRPCClient.Set(clientSpan)
 			ctx = opentracing.ContextWithSpan(ctx, clientSpan)
 			return next(ctx, request)
