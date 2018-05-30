@@ -18,7 +18,7 @@ func ContextToGRPC(tracer opentracing.Tracer, logger log.Logger) func(ctx contex
 	return func(ctx context.Context, md *metadata.MD) context.Context {
 		if span := opentracing.SpanFromContext(ctx); span != nil {
 			// There's nothing we can do with an error here.
-			if err := tracer.Inject(span.Context(), opentracing.TextMap, metadataReaderWriter{md}); err != nil {
+			if err := tracer.Inject(span.Context(), opentracing.HTTPHeaders, metadataReaderWriter{md}); err != nil {
 				logger.Error("err", err)
 			}
 		}
@@ -34,7 +34,7 @@ func ContextToGRPC(tracer opentracing.Tracer, logger log.Logger) func(ctx contex
 func GRPCToContext(tracer opentracing.Tracer, operationName string, logger log.Logger) func(ctx context.Context, md metadata.MD) context.Context {
 	return func(ctx context.Context, md metadata.MD) context.Context {
 		var span opentracing.Span
-		wireContext, err := tracer.Extract(opentracing.TextMap, metadataReaderWriter{&md})
+		wireContext, err := tracer.Extract(opentracing.HTTPHeaders, metadataReaderWriter{&md})
 		if err != nil && err != opentracing.ErrSpanContextNotFound {
 			logger.Error("err", err)
 		}
