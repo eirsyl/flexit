@@ -35,7 +35,7 @@ func ContextToHTTP(tracer opentracing.Tracer, logger log.Logger) flexithttp.Requ
 			// There's nothing we can do with any errors here.
 			if err = tracer.Inject(
 				span.Context(),
-				opentracing.TextMap,
+				opentracing.HTTPHeaders,
 				opentracing.HTTPHeadersCarrier(req.Header),
 			); err != nil {
 				logger.Error("err", err)
@@ -55,7 +55,7 @@ func HTTPToContext(tracer opentracing.Tracer, operationName string, logger log.L
 		// Try to join to a trace propagated in `req`.
 		var span opentracing.Span
 		wireContext, err := tracer.Extract(
-			opentracing.TextMap,
+			opentracing.HTTPHeaders,
 			opentracing.HTTPHeadersCarrier(req.Header),
 		)
 		if err != nil && err != opentracing.ErrSpanContextNotFound {
