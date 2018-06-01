@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"time"
+
 	"github.com/fatih/camelcase"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -45,6 +47,32 @@ func IntConfig(cmd *cobra.Command, name, short string, value int, description st
 // BoolConfig adds a bool flag to a cli
 func BoolConfig(cmd *cobra.Command, name, short string, value bool, description string) {
 	cmd.PersistentFlags().BoolP(name, short, value, description)
+	err := viper.BindPFlag(name, cmd.PersistentFlags().Lookup(name))
+	if err != nil {
+		panic(err)
+	}
+	err = viper.BindEnv(name, uppercaseName(name))
+	if err != nil {
+		panic(err)
+	}
+}
+
+// DurationConfig adds a duration flag to a cli
+func DurationConfig(cmd *cobra.Command, name, short string, value time.Duration, description string) {
+	cmd.PersistentFlags().DurationP(name, short, value, description)
+	err := viper.BindPFlag(name, cmd.PersistentFlags().Lookup(name))
+	if err != nil {
+		panic(err)
+	}
+	err = viper.BindEnv(name, uppercaseName(name))
+	if err != nil {
+		panic(err)
+	}
+}
+
+// StringSliceConfig adds a string flag to a cli
+func StringSliceConfig(cmd *cobra.Command, name, short string, value []string, description string) {
+	cmd.PersistentFlags().StringSliceP(name, short, value, description)
 	err := viper.BindPFlag(name, cmd.PersistentFlags().Lookup(name))
 	if err != nil {
 		panic(err)
