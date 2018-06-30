@@ -10,8 +10,11 @@ type logrusLogger struct {
 
 var _ Logger = NewLogrusLogger(true)
 
-func NewLogrusLogger(human bool) Logger {
+func NewLogrusLogger(jsonLogger bool) Logger {
 	logger := logrus.New()
+	if jsonLogger {
+		logger.Formatter = &logrus.JSONFormatter{}
+	}
 	return &logrusLogger{
 		log: logrus.NewEntry(logger),
 	}
