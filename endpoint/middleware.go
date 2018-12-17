@@ -7,8 +7,17 @@ import (
 
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/metrics"
-	"github.com/getsentry/raven-go"
+	raven "github.com/getsentry/raven-go"
 )
+
+// Compose composes a endpoint from a enpoint and a slice of middlewares
+func Compose(next Endpoint, middlewares ...Middleware) (endpoint Endpoint) {
+	endpoint = next
+	for _, middleware := range middlewares {
+		endpoint = middleware(endpoint)
+	}
+	return
+}
 
 // InstrumentingMiddleware returns an endpoint middleware that records
 // the duration of each invocation to the passed histogram. The middleware adds
