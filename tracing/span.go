@@ -2,10 +2,11 @@ package tracing
 
 import (
 	"context"
-	"github.com/opentracing/opentracing-go"
+
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
-var noopTracer = &opentracing.NoopTracer{}
+var tracer = opentracing.GlobalTracer()
 
 // MaybeStartSpanFromContext creates a span from a given context, a noop tracer is returned if no tracer is found
 func MaybeStartSpanFromContext(
@@ -17,7 +18,7 @@ func MaybeStartSpanFromContext(
 		span, ctx := opentracing.StartSpanFromContext(ctx, operationName, opts...)
 		return span, ctx
 	} else {
-		span := noopTracer.StartSpan(operationName)
+		span := tracer.StartSpan(operationName)
 		return span, ctx
 	}
 }

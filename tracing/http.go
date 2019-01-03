@@ -8,7 +8,7 @@ import (
 
 	"github.com/eirsyl/flexit/log"
 	flexithttp "github.com/eirsyl/flexit/transports/http"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 )
 

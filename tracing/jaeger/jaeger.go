@@ -4,14 +4,14 @@ import (
 	"io"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-	"github.com/uber/jaeger-client-go"
+	opentracing "github.com/opentracing/opentracing-go"
+	jaeger "github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/zipkin"
 	"github.com/uber/jaeger-lib/metrics/prometheus"
 )
 
 // New creates a new jaeger tracer, zipkin header propagation is optional (istio environments)
-func New(host string, service string, zipkinHeaders bool) (opentracing.Tracer, io.Closer, error) {
+func New(hostPort string, service string, zipkinHeaders bool) (opentracing.Tracer, io.Closer, error) {
 	var opts []jaeger.TracerOption
 
 	if zipkinHeaders {
@@ -31,7 +31,7 @@ func New(host string, service string, zipkinHeaders bool) (opentracing.Tracer, i
 	metrics := jaeger.NewMetrics(metricsFactory, nil)
 	opts = append(opts, jaeger.TracerOptions.Metrics(metrics))
 
-	sender, err := jaeger.NewUDPTransport(host, 0)
+	sender, err := jaeger.NewUDPTransport(hostPort, 0)
 	if err != nil {
 		return nil, nil, err
 	}
