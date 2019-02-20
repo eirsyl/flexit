@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package pb;
+
+service Simple {
+    rpc Add (AddRequest) returns (AddResponse) {}
+    rpc Subtract (SubtractRequest) returns (SubtractResponse) {}
+}
+
+message AddRequest {
+    int64 X = 1;
+    int64 Y = 2;
+}
+
+message AddResponse {
+    int64 Sum = 1;
+    string err = 2;
+}
+
+message SubtractRequest {
+    int64 X = 1;
+    int64 Y = 2;
+}
+
+message SubtractResponse {
+    int64 Sum = 1;
+    string err = 2;
+}

@@ -7,9 +7,8 @@ import (
 	"github.com/eirsyl/flexit/examples/addsvc/pkg/service"
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/metrics"
-	"github.com/eirsyl/flexit/tracing"
-	"github.com/getsentry/raven-go"
-	"github.com/opentracing/opentracing-go"
+	raven "github.com/getsentry/raven-go"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 type Set struct {
@@ -17,10 +16,10 @@ type Set struct {
 }
 
 func composeEndpoints(ep endpoint.Endpoint, name string, tracer opentracing.Tracer, logger log.Logger, duration metrics.Histogram, ravenClient *raven.Client) endpoint.Endpoint {
-	ep = tracing.TraceServer(tracer, name)(ep)
-	ep = endpoint.LoggingMiddleware(logger.WithField("method", name))(ep)
-	ep = endpoint.InstrumentingMiddleware(duration.With("method", name))(ep)
-	ep = endpoint.SentryMiddleware(ravenClient)(ep)
+	ep = endpoint.TraceServer(tracer)(name, ep)
+	ep = endpoint.LoggingMiddleware(logger.WithField("method", name))(name, ep)
+	ep = endpoint.InstrumentingMiddleware(duration.With("method", name))(name, ep)
+	ep = endpoint.SentryMiddleware(ravenClient)(name, ep)
 	return ep
 }
 
