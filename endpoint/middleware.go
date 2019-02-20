@@ -80,6 +80,7 @@ func TraceServer(tracer opentracing.Tracer) Middleware {
 			} else {
 				serverSpan.SetOperationName(name)
 			}
+
 			defer func() {
 				if err != nil {
 					serverSpan.SetTag("error", true)

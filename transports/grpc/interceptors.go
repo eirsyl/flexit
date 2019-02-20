@@ -7,13 +7,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// ServerMethodNameInterceptor is a grpc UnaryInterceptor that injects the method name into
-// context so it can be consumed by middlewares.
-func ServerMethodNameInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	ctx = context.WithValue(ctx, ContextKeyRequestMethod, info.FullMethod)
-	return handler(ctx, req)
-}
-
 // ServerMiddlewareInterceptor intercepts server requests and executes before, after and finalizer functions
 func ServerMiddlewareInterceptor(
 	before []ServerRequestFunc,
@@ -25,6 +18,8 @@ func ServerMiddlewareInterceptor(
 		if !ok {
 			md = metadata.MD{}
 		}
+
+		ctx = context.WithValue(ctx, ContextKeyRequestMethod, info.FullMethod)
 
 		if len(finalizer) > 0 {
 			defer func() {
@@ -71,6 +66,8 @@ func ClientMiddlewareInterceptor(
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
+		ctx = context.WithValue(ctx, ContextKeyRequestMethod, method)
+
 		if len(finalizer) > 0 {
 			defer func() {
 				for _, f := range finalizer {
@@ -79,12 +76,11 @@ func ClientMiddlewareInterceptor(
 			}()
 		}
 
-		ctx = context.WithValue(ctx, ContextKeyRequestMethod, method)
-
 		md := &metadata.MD{}
 		for _, f := range before {
 			ctx = f(ctx, md)
 		}
+
 		ctx = metadata.NewOutgoingContext(ctx, *md)
 
 		var header, trailer metadata.MD

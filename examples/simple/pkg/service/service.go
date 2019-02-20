@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/eirsyl/flexit/examples/simple/pb"
 
@@ -29,7 +30,7 @@ func NewBasicService() Service {
 }
 
 func (s *basicService) Add(_ context.Context, r *pb.AddRequest) (*pb.AddResponse, error) {
-	return &pb.AddResponse{Sum: r.X + r.Y}, nil
+	return &pb.AddResponse{Sum: r.X + r.Y}, errors.New("OVERFLOW ERROR")
 }
 
 func (s *basicService) Subtract(_ context.Context, r *pb.SubtractRequest) (*pb.SubtractResponse, error) {

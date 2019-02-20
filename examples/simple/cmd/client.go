@@ -63,7 +63,9 @@ var clientCmd = &cobra.Command{
 
 		conn, err := flexitgrpc.NewClient(
 			"127.0.0.1:8090",
-			nil,
+			[]flexitgrpc.ClientRequestFunc{
+				flexitgrpc.ContextToGRPC(tracer, logger),
+			},
 			nil,
 			[]flexitgrpc.ClientFinalizerFunc{flexitgrpc.SentryClientFinalizer(ravenClient)},
 			grpc.WithInsecure(),
@@ -80,7 +82,6 @@ var clientCmd = &cobra.Command{
 		sum, err := svc.Add(context.Background(), &pb.AddRequest{X: 100, Y: 200})
 		if err != nil {
 			logger.Error(err)
-			os.Exit(1)
 		}
 
 		logger.Infof("Sum: %v", sum)
@@ -88,7 +89,6 @@ var clientCmd = &cobra.Command{
 		div, err := svc.Subtract(context.Background(), &pb.SubtractRequest{X: 100, Y: 100})
 		if err != nil {
 			logger.Error(err)
-			os.Exit(1)
 		}
 
 		logger.Infof("Sum: %v", div)

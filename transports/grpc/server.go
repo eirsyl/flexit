@@ -13,7 +13,6 @@ func NewServer(
 
 	server := grpc.NewServer(
 		WithUnaryServerChain(
-			ServerMethodNameInterceptor,
 			ServerMiddlewareInterceptor(before, after, finalizer),
 		),
 		WithStreamServerChain(),

@@ -29,8 +29,8 @@ import (
 var App = app.NewApp("eirsyl.flexit.simple", "Service for adding numbers")
 
 func init() {
-	cmd.StringConfig(RootCmd, "debugAddr", "", ":8080", "debug server listen addr")
-	cmd.StringConfig(RootCmd, "grpcAddr", "", ":8090", "add api grpc server listen addr")
+	cmd.StringConfig(RootCmd, "debugAddr", "", "127.0.0.1:8080", "debug server listen addr")
+	cmd.StringConfig(RootCmd, "grpcAddr", "", "127.0.0.1:8090", "add api grpc server listen addr")
 	cmd.StringConfig(RootCmd, "jaegerAddr", "", "127.0.0.1:6831", "jaeger agent addr")
 	cmd.StringConfig(RootCmd, "sentryDsn", "", "", "sentry raven dsn")
 
@@ -159,7 +159,13 @@ var RootCmd = &cobra.Command{
 			g.Add(func() error {
 				grpcLogger.Info("listening")
 				baseServer := flexitgrpc.NewServer(
-					nil, nil, []flexitgrpc.ServerFinalizerFunc{flexitgrpc.SentryServerFinalizer(ravenClient)},
+					[]flexitgrpc.ServerRequestFunc{
+						flexitgrpc.GRPCToContext(tracer, logger),
+					},
+					nil,
+					[]flexitgrpc.ServerFinalizerFunc{
+						flexitgrpc.SentryServerFinalizer(ravenClient),
+					},
 				)
 				pb.RegisterSimpleServer(baseServer, endpoint)
 				return baseServer.Serve(grpcListener)

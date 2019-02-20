@@ -50,14 +50,18 @@ func ContextToGRPC(tracer opentracing.Tracer, logger log.Logger) ClientRequestFu
 // `operationName` accordingly. If no trace could be found in `req`, the Span
 // will be a trace root. The Span is incorporated in the returned Context and
 // can be retrieved with opentracing.SpanFromContext(ctx).
-func GRPCToContext(tracer opentracing.Tracer, operationName string, logger log.Logger) ServerRequestFunc {
+func GRPCToContext(tracer opentracing.Tracer, logger log.Logger) ServerRequestFunc {
 	return func(ctx context.Context, md metadata.MD) context.Context {
 		var span opentracing.Span
+
 		wireContext, err := tracer.Extract(opentracing.HTTPHeaders, metadataReaderWriter{&md})
 		if err != nil && err != opentracing.ErrSpanContextNotFound {
 			logger.Error("err", err)
 		}
+
+		operationName := ctx.Value(ContextKeyRequestMethod).(string)
 		span = tracer.StartSpan(operationName, ext.RPCServerOption(wireContext))
+
 		return opentracing.ContextWithSpan(ctx, span)
 	}
 }
