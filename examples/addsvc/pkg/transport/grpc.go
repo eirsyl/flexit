@@ -10,9 +10,9 @@ import (
 	"github.com/eirsyl/flexit/examples/addsvc/pkg/service"
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/tracing"
-	grpctransport "github.com/eirsyl/flexit/transports/grpc"
-	"github.com/getsentry/raven-go"
-	"github.com/opentracing/opentracing-go"
+	grpctransport "github.com/eirsyl/flexit/transports/grpcdepricated"
+	raven "github.com/getsentry/raven-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 )
 
@@ -60,7 +60,7 @@ func NewGRPCClient(conn *grpc.ClientConn, tracer opentracing.Tracer, logger log.
 			pb.AddResponse{},
 			append(options, grpctransport.ClientBefore(tracing.ContextToGRPC(tracer, logger)))...,
 		).Endpoint()
-		addEndpoint = tracing.TraceClient(tracer, "Add")(addEndpoint)
+		addEndpoint = flexitendpoint.TraceClient(tracer)("Add", addEndpoint)
 	}
 
 	return &endpoint.Set{

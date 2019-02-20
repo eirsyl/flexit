@@ -1,4 +1,4 @@
-package grpc
+package grpcdepricated
 
 import (
 	"context"

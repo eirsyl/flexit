@@ -5,16 +5,15 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+
+	flexitgrpc "github.com/eirsyl/flexit/transports/grpc"
 
 	"github.com/eirsyl/flexit/app"
 	"github.com/eirsyl/flexit/cmd"
 	"github.com/eirsyl/flexit/debugserver"
-	"github.com/eirsyl/flexit/examples/addsvc/pb"
-	"github.com/eirsyl/flexit/examples/addsvc/pkg/endpoint"
-	"github.com/eirsyl/flexit/examples/addsvc/pkg/service"
-	"github.com/eirsyl/flexit/examples/addsvc/pkg/transport"
+	"github.com/eirsyl/flexit/examples/simple/pb"
+	"github.com/eirsyl/flexit/examples/simple/pkg/endpoint"
+	"github.com/eirsyl/flexit/examples/simple/pkg/service"
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/metrics"
 	"github.com/eirsyl/flexit/runtime"
@@ -25,10 +24,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"google.golang.org/grpc"
 )
 
-var App = app.NewApp("eirsyl.flexit.addsvc", "Service for adding numbers")
+var App = app.NewApp("eirsyl.flexit.simple", "Service for adding numbers")
 
 func init() {
 	cmd.StringConfig(RootCmd, "debugAddr", "", ":8080", "debug server listen addr")
@@ -50,7 +48,7 @@ var RootCmd = &cobra.Command{
 			cmd.RequireString("jaegerAddr"),
 		)
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(c *cobra.Command, args []string) error {
 
 		// Initialize logger
 		var logger log.Logger
@@ -142,15 +140,14 @@ var RootCmd = &cobra.Command{
 		}
 		{
 			grpcLogger := logger.WithFields(&log.Fields{
-				"transport": "addsvc/grpc",
+				"transport": "simple/grpc",
 				"addr":      grpcAddr,
 			})
 
 			// Initialize services
 			var (
-				service   = service.New(grpcLogger, additions)
-				endpoint  = endpoint.New(service, grpcLogger, tracer, duration, ravenClient)
-				transport = transport.NewGRPCServer(endpoint, tracer, grpcLogger, ravenClient)
+				service  = service.New(grpcLogger, additions)
+				endpoint = endpoint.New(service, grpcLogger, tracer, duration, ravenClient)
 			)
 
 			grpcListener, err := net.Listen("tcp", grpcAddr)
@@ -161,29 +158,19 @@ var RootCmd = &cobra.Command{
 
 			g.Add(func() error {
 				grpcLogger.Info("listening")
-				baseServer := grpc.NewServer()
-				pb.RegisterAddServer(baseServer, transport)
+				baseServer := flexitgrpc.NewServer(
+					nil, nil, []flexitgrpc.ServerFinalizerFunc{flexitgrpc.SentryServerFinalizer(ravenClient)},
+				)
+				pb.RegisterSimpleServer(baseServer, endpoint)
 				return baseServer.Serve(grpcListener)
 			}, func(error) {
 				grpcListener.Close()
 			})
 		}
 		{
-			cancelInterrupt := make(chan struct{})
-			g.Add(func() error {
-				c := make(chan os.Signal, 1)
-				signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-				select {
-				case sig := <-c:
-					logger.Errorf("received signal %s", sig)
-					return nil
-				case <-cancelInterrupt:
-					return nil
-				}
-			}, func(error) {
-				close(cancelInterrupt)
-			})
+			g.Add(cmd.Interrupt(logger))
 		}
+
 		return g.Run()
 
 	},
