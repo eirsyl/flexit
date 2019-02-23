@@ -17,12 +17,14 @@ type Set struct {
 
 var _ service.Service = &Set{}
 
+// Add implements the add function of the service definition
 func (s *Set) Add(ctx context.Context, r *pb.AddRequest) (*pb.AddResponse, error) {
 	resp, err := s.AddEndpoint(ctx, r)
 	response := resp.(*pb.AddResponse)
 	return response, err
 }
 
+// Subtract implements the subtract function of the service definition
 func (s *Set) Subtract(ctx context.Context, r *pb.SubtractRequest) (*pb.SubtractResponse, error) {
 	resp, err := s.SubtractEndpoint(ctx, r)
 	response := resp.(*pb.SubtractResponse)

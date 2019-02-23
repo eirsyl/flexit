@@ -6,13 +6,16 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/eirsyl/flexit/endpoint"
+	"github.com/eirsyl/flexit/examples/simple/pkg/transportgrpc"
+
 	flexitgrpc "github.com/eirsyl/flexit/transports/grpc"
 
 	"github.com/eirsyl/flexit/app"
 	"github.com/eirsyl/flexit/cmd"
 	"github.com/eirsyl/flexit/debugserver"
+	flexitendpoint "github.com/eirsyl/flexit/endpoint"
 	"github.com/eirsyl/flexit/examples/simple/pb"
-	"github.com/eirsyl/flexit/examples/simple/pkg/endpoint"
 	"github.com/eirsyl/flexit/examples/simple/pkg/service"
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/metrics"
@@ -144,10 +147,17 @@ var RootCmd = &cobra.Command{
 				"addr":      grpcAddr,
 			})
 
+			middleware := []flexitendpoint.Middleware{
+				flexitendpoint.TraceServer(tracer),
+				flexitendpoint.SentryMiddleware(ravenClient),
+				flexitendpoint.LoggingMiddleware(logger),
+				endpoint.InstrumentingMiddleware(duration),
+			}
+
 			// Initialize services
 			var (
-				service  = service.New(grpcLogger, additions)
-				endpoint = endpoint.New(service, grpcLogger, tracer, duration, ravenClient)
+				service = service.New(grpcLogger, additions)
+				server  = transportgrpc.NewGRPCServer(service, middleware)
 			)
 
 			grpcListener, err := net.Listen("tcp", grpcAddr)
@@ -158,16 +168,8 @@ var RootCmd = &cobra.Command{
 
 			g.Add(func() error {
 				grpcLogger.Info("listening")
-				baseServer := flexitgrpc.NewServer(
-					[]flexitgrpc.ServerRequestFunc{
-						flexitgrpc.GRPCToContext(tracer, logger),
-					},
-					nil,
-					[]flexitgrpc.ServerFinalizerFunc{
-						flexitgrpc.SentryServerFinalizer(ravenClient),
-					},
-				)
-				pb.RegisterSimpleServer(baseServer, endpoint)
+				baseServer := flexitgrpc.NewServer(tracer, ravenClient)
+				pb.RegisterSimpleServer(baseServer, server)
 				return baseServer.Serve(grpcListener)
 			}, func(error) {
 				grpcListener.Close()

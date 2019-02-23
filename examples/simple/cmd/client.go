@@ -3,17 +3,17 @@ package cmd
 import (
 	"io"
 	"os"
+	"time"
 
 	flexitgrpc "github.com/eirsyl/flexit/transports/grpc"
 
 	"github.com/eirsyl/flexit/examples/simple/pb"
 
 	"fmt"
-	"time"
 
 	"context"
 
-	"github.com/eirsyl/flexit/examples/simple/pkg/service"
+	"github.com/eirsyl/flexit/endpoint"
 	"github.com/eirsyl/flexit/examples/simple/pkg/transportgrpc"
 	"github.com/eirsyl/flexit/log"
 	"github.com/eirsyl/flexit/tracing/jaeger"
@@ -56,20 +56,13 @@ var clientCmd = &cobra.Command{
 			}
 		}
 
-		var (
-			svc service.Service
-			err error
-		)
-
+		ctx, _ := context.WithTimeout(context.TODO(), time.Second)
 		conn, err := flexitgrpc.NewClient(
+			ctx,
 			"127.0.0.1:8090",
-			[]flexitgrpc.ClientRequestFunc{
-				flexitgrpc.ContextToGRPC(tracer, logger),
-			},
-			nil,
-			[]flexitgrpc.ClientFinalizerFunc{flexitgrpc.SentryClientFinalizer(ravenClient)},
+			tracer,
+			ravenClient,
 			grpc.WithInsecure(),
-			grpc.WithTimeout(time.Second),
 		)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v", err)
@@ -77,16 +70,22 @@ var clientCmd = &cobra.Command{
 		}
 		defer conn.Close()
 
-		svc = transportgrpc.NewGRPCClient(conn, tracer, log.NewLogrusLogger(true), ravenClient)
+		middleware := []endpoint.Middleware{
+			endpoint.TraceClient(tracer),
+			endpoint.SentryMiddleware(ravenClient),
+			endpoint.LoggingMiddleware(logger),
+		}
 
-		sum, err := svc.Add(context.Background(), &pb.AddRequest{X: 100, Y: 200})
+		client := transportgrpc.NewGRPCClient(conn, middleware)
+
+		sum, err := client.Add(context.Background(), &pb.AddRequest{X: 100, Y: 200})
 		if err != nil {
 			logger.Error(err)
 		}
 
 		logger.Infof("Sum: %v", sum)
 
-		div, err := svc.Subtract(context.Background(), &pb.SubtractRequest{X: 100, Y: 100})
+		div, err := client.Subtract(context.Background(), &pb.SubtractRequest{X: 100, Y: 100})
 		if err != nil {
 			logger.Error(err)
 		}
